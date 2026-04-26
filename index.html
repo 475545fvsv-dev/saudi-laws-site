@@ -1,0 +1,76 @@
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  var input = document.getElementById('searchInput');
+  var sendBtn = document.getElementById('sendBtn');
+
+  if (!input || !sendBtn) {
+    console.error("Missing elements in DOM");
+    return;
+  }
+
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      doSearch();
+    }
+  });
+
+  function fillSearch(el) {
+    input.value = el.textContent.trim();
+    input.focus();
+  }
+
+  async function doSearch() {
+    var q = input.value.trim();
+    if (!q) return;
+
+    sendBtn.disabled = true;
+
+    document.getElementById('welcomeState').style.display = 'none';
+    document.getElementById('answerSection').classList.add('visible');
+
+    var loading = document.getElementById('loadingIndicator');
+    var answerText = document.getElementById('answerText');
+    var sourcesSection = document.getElementById('sourcesSection');
+
+    loading.style.display = 'flex';
+    answerText.style.display = 'none';
+    answerText.innerHTML = '';
+    sourcesSection.style.display = 'none';
+
+    try {
+      var response = await fetch('/.netlify/functions/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ question: q })
+      });
+
+      var data = await response.json();
+
+      loading.style.display = 'none';
+      answerText.style.display = 'block';
+
+      if (data.answer) {
+        answerText.innerHTML = "<p>" + data.answer + "</p>";
+      } else {
+        answerText.innerHTML = '<div class="error-msg">لا يوجد رد من السيرفر</div>';
+      }
+
+    } catch (err) {
+      loading.style.display = 'none';
+      answerText.style.display = 'block';
+      answerText.innerHTML = '<div class="error-msg">حدث خطأ في الاتصال</div>';
+      console.error(err);
+    }
+
+    sendBtn.disabled = false;
+  }
+
+  window.fillSearch = fillSearch;
+  window.doSearch = doSearch;
+
+});
+</script>
