@@ -7,7 +7,7 @@ saudi-laws-site/
 ├── index.html        ← الواجهة الأمامية (Frontend)
 ├── vercel.json       ← إعدادات Vercel
 ├── api/
-│   └── search.js     ← الخادم الخلفي الآمن (Backend)
+│   └── api/search.js     ← الخادم الخلفي الآمن (Backend)
 └── README.md
 ```
 
