@@ -1,0 +1,17 @@
+{
+  "laws": [
+    {
+      "law_name": "نظام مكافحة الاحتيال المالي وخيانة الأمانة",
+      "source_url": "https://www.uqn.gov.sa/details?p=17528",
+      "article_count": 11,
+      "law_hash": null,
+      "last_verified_at": null,
+      "status": "prototype",
+      "source_type": "official_manual",
+      "warnings": [
+        "رقم المرسوم غير مذكور صراحة في صفحة المصدر المستخدمة للـPrototype.",
+        "حالة النفاذ غير مستنتجة من هذه الصفحة."
+      ]
+    }
+  ]
+}
