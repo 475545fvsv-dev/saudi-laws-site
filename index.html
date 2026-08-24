@@ -1220,7 +1220,9 @@ function showSources(data) {
 
   var articleNumbers =
     data && data.matched_articles
-      ? data.matched_articles
+      ? data.matched_articles.map(function(article) {
+          return article.article_number;
+        })
       : [];
 
 
