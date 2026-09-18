@@ -1,6 +1,6 @@
 exports.handler = async function () {
   try {
-    const url = "https://ncar.gov.sa/rules-regulations";
+    const url = "https://www.uqn.gov.sa/";
 
     const response = await fetch(url);
 
