@@ -3,6 +3,7 @@ exports.handler = async function () {
     const url = "https://www.uqn.gov.sa/details?p=17528";
 
     const response = await fetch(url);
+    const html = await response.text();
 
     return {
       statusCode: 200,
@@ -12,7 +13,14 @@ exports.handler = async function () {
       body: JSON.stringify({
         success: true,
         status: response.status,
-        content_type: response.headers.get("content-type")
+        length: html.length,
+        has_article_one: html.includes("المادة الأولى"),
+        has_article_two: html.includes("المادة الثانية"),
+        has_article_eleven: html.includes("المادة الحادية عشرة"),
+        preview: html.substring(
+          html.indexOf("المادة الأولى"),
+          html.indexOf("المادة الأولى") + 3000
+        )
       })
     };
 
