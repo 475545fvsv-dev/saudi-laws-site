@@ -16,21 +16,17 @@ exports.handler = async function (event) {
       };
     }
 
-    // النظام الذي نختبر عليه حاليًا
     const lawUrl =
       "https://www.uqn.gov.sa/details?p=17528";
 
     const response = await fetch(lawUrl);
 
     if (!response.ok) {
-      throw new Error(
-        `فشل الوصول إلى جريدة أم القرى: ${response.status}`
-      );
+      throw new Error(`فشل الوصول إلى المصدر: ${response.status}`);
     }
 
     const html = await response.text();
 
-    // تحويل HTML إلى نص قابل للبحث
     const text = html
       .replace(/<script[\s\S]*?<\/script>/gi, " ")
       .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -41,7 +37,6 @@ exports.handler = async function (event) {
       .replace(/\s+/g, " ")
       .trim();
 
-    // استخراج المواد
     const articleRegex =
       /المادة\s+(الأولى|الثانية|الثالثة|الرابعة|الخامسة|السادسة|السابعة|الثامنة|التاسعة|العاشرة|الحادية عشرة)\s*:/g;
 
@@ -56,16 +51,14 @@ exports.handler = async function (event) {
           ? matches[i + 1].index
           : text.length;
 
-      const articleText = text
-        .substring(start, end)
-        .trim();
-
-      articles.push(articleText);
+      articles.push(
+        text.substring(start, end).trim()
+      );
     }
 
-    // بحث بسيط داخل المواد عن كلمات السؤال
     const questionWords = question
       .split(/\s+/)
+      .map(word => word.replace(/[؟،.,!]/g, ""))
       .filter(word => word.length >= 3);
 
     const results = articles
@@ -97,7 +90,7 @@ exports.handler = async function (event) {
         law: "نظام مكافحة الاحتيال المالي وخيانة الأمانة",
         source: lawUrl,
         articles_found: articles.length,
-        relevant_articles: results.slice(0, 3)
+        relevant_articles: results.slice(0, 5)
       })
     };
 
