@@ -12,45 +12,32 @@ exports.handler = async function(event) {
 
     var response = await fetch(url);
 
-    if (!response.ok) {
-      throw new Error(
-        'فشل البحث: ' + response.status
-      );
-    }
-
     var html = await response.text();
 
-    // استخراج الروابط الموجودة في صفحة النتائج
-    var links = [];
+    // نبحث عن أماكن ظهور كلمة "احتيال" داخل الصفحة
+    var positions = [];
+    var word = 'احتيال';
+    var start = 0;
 
-    var linkRegex =
-      /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    while (true) {
 
-    var match;
+      var index = html.indexOf(word, start);
 
-    while ((match = linkRegex.exec(html)) !== null) {
-
-      var href = match[1];
-
-      var title = match[2]
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      if (
-        title.includes('الاحتيال') ||
-        title.includes('نظام') ||
-        href.includes('/details')
-      ) {
-
-        links.push({
-          title: title.substring(0, 200),
-          href: href
-        });
-
+      if (index === -1) {
+        break;
       }
 
-      if (links.length >= 20) {
+      positions.push({
+        position: index,
+        context: html.substring(
+          Math.max(0, index - 500),
+          Math.min(html.length, index + 1000)
+        )
+      });
+
+      start = index + word.length;
+
+      if (positions.length >= 10) {
         break;
       }
     }
@@ -62,7 +49,7 @@ exports.handler = async function(event) {
         success: true,
         status: response.status,
         page_length: html.length,
-        results: links
+        occurrences: positions
       })
     };
 
