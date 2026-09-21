@@ -23,6 +23,7 @@ exports.handler = async function(event) {
       };
     }
 
+  console.log('NEW SEARCH.JS IS RUNNING');
     // المصدر الرسمي الذي نختبر عليه حاليًا
     var lawUrl = 'https://www.uqn.gov.sa/details?p=17528';
 
