@@ -5,40 +5,36 @@ exports.handler = async function(event) {
   };
 
   try {
-    var url = 'https://www.uqn.gov.sa/';
-
-    var response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error('فشل الوصول إلى أم القرى: ' + response.status);
-    }
-
-    var html = await response.text();
-
-    // نبحث عن كلمات موجودة في الصفحة
-    var keywords = [
-      'نظام إيرادات الدولة',
-      'نظام التعليم العام',
-      'نظام التنفيذ',
-      'نظام حقوق المؤلف',
-      'نظام المنافسات والمشتريات الحكومية'
+    var urls = [
+      'https://www.uqn.gov.sa/search?keyword=نظام',
+      'https://www.uqn.gov.sa/search?q=نظام',
+      'https://www.uqn.gov.sa/search?query=نظام'
     ];
 
-    var found = [];
+    var results = [];
 
-    keywords.forEach(function(keyword) {
-      if (html.includes(keyword)) {
-        found.push(keyword);
-      }
-    });
+    for (var i = 0; i < urls.length; i++) {
+
+      var response = await fetch(urls[i]);
+
+      var html = await response.text();
+
+      results.push({
+        url: urls[i],
+        status: response.status,
+        length: html.length,
+        has_results:
+          html.includes('نظام') ||
+          html.includes('الأنظمة')
+      });
+    }
 
     return {
       statusCode: 200,
       headers: h,
       body: JSON.stringify({
         success: true,
-        page_length: html.length,
-        found: found
+        results: results
       })
     };
 
