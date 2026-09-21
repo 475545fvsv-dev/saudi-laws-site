@@ -5,28 +5,54 @@ exports.handler = async function(event) {
   };
 
   try {
-    var urls = [
-      'https://www.uqn.gov.sa/search?keyword=نظام',
-      'https://www.uqn.gov.sa/search?q=نظام',
-      'https://www.uqn.gov.sa/search?query=نظام'
-    ];
 
-    var results = [];
+    var url =
+      'https://www.uqn.gov.sa/search?query=' +
+      encodeURIComponent('نظام مكافحة الاحتيال المالي');
 
-    for (var i = 0; i < urls.length; i++) {
+    var response = await fetch(url);
 
-      var response = await fetch(urls[i]);
+    if (!response.ok) {
+      throw new Error(
+        'فشل البحث: ' + response.status
+      );
+    }
 
-      var html = await response.text();
+    var html = await response.text();
 
-      results.push({
-        url: urls[i],
-        status: response.status,
-        length: html.length,
-        has_results:
-          html.includes('نظام') ||
-          html.includes('الأنظمة')
-      });
+    // استخراج الروابط الموجودة في صفحة النتائج
+    var links = [];
+
+    var linkRegex =
+      /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+    var match;
+
+    while ((match = linkRegex.exec(html)) !== null) {
+
+      var href = match[1];
+
+      var title = match[2]
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (
+        title.includes('الاحتيال') ||
+        title.includes('نظام') ||
+        href.includes('/details')
+      ) {
+
+        links.push({
+          title: title.substring(0, 200),
+          href: href
+        });
+
+      }
+
+      if (links.length >= 20) {
+        break;
+      }
     }
 
     return {
@@ -34,7 +60,9 @@ exports.handler = async function(event) {
       headers: h,
       body: JSON.stringify({
         success: true,
-        results: results
+        status: response.status,
+        page_length: html.length,
+        results: links
       })
     };
 
