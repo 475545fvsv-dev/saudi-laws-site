@@ -1,47 +1,15 @@
 
 exports.handler = async function () {
   try {
-    var query = "نظام العمل";
     var url =
       "https://www.uqn.gov.sa/search?query=" +
-      encodeURIComponent(query);
+      encodeURIComponent("نظام العمل");
 
     var response = await fetch(url);
     var html = await response.text();
 
-    // استخراج روابط النتائج وعناوينها من صفحة أم القرى
-    var results = [];
-    var regex =
-      /<a\b[^>]*href=["']([^"']*details\?p=\d+[^"']*)["'][^>]*>/gi;
-
-    var match;
-
-    while ((match = regex.exec(html)) !== null) {
-      var tag = match[0];
-      var href = match[1];
-
-      var titleMatch = tag.match(/\btitle=["']([^"']+)["']/i);
-
-      var title = titleMatch
-        ? titleMatch[1]
-        : "";
-
-      var link = href.startsWith("http")
-        ? href
-        : "https://www.uqn.gov.sa" + href;
-
-      if (
-        title &&
-        !results.some(function (item) {
-          return item.url === link;
-        })
-      ) {
-        results.push({
-          title: title,
-          url: link
-        });
-      }
-    }
+    var keyword = "نظام العمل";
+    var index = html.indexOf(keyword);
 
     return {
       statusCode: 200,
@@ -50,9 +18,16 @@ exports.handler = async function () {
       },
       body: JSON.stringify({
         status: response.status,
-        query: query,
-        results_count: results.length,
-        results: results.slice(0, 15)
+        html_length: html.length,
+        keyword_found: index !== -1,
+        page_preview: html.slice(0, 1200),
+        keyword_context:
+          index !== -1
+            ? html.slice(
+                Math.max(0, index - 500),
+                index + 1500
+              )
+            : "لم يظهر نص البحث حرفيًا في الصفحة"
       })
     };
   } catch (error) {
@@ -61,9 +36,7 @@ exports.handler = async function () {
       headers: {
         "Content-Type": "application/json; charset=utf-8"
       },
-      body: JSON.stringify({
-        error: error.message
-      })
+      body: JSON.stringify({ error: error.message })
     };
   }
 };
