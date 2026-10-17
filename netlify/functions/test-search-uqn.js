@@ -5,41 +5,50 @@ exports.handler = async function(event) {
   };
 
   try {
+    var query = 'نظام العمل';
 
     var url =
       'https://www.uqn.gov.sa/search?query=' +
-      encodeURIComponent('نظام مكافحة الاحتيال المالي');
+      encodeURIComponent(query);
 
     var response = await fetch(url);
 
+    if (!response.ok) {
+      throw new Error('فشل البحث: ' + response.status);
+    }
+
     var html = await response.text();
 
-    // نبحث عن أماكن ظهور كلمة "احتيال" داخل الصفحة
-    var positions = [];
-    var word = 'احتيال';
-    var start = 0;
+    var results = [];
+    var regex =
+      /<div class="one-article">([\s\S]*?)<\/div>\s*<div class="article-meta">([\s\S]*?)<\/div>/g;
 
-    while (true) {
+    var match;
 
-      var index = html.indexOf(word, start);
+    // استخراج روابط التفاصيل وعناوينها من HTML
+    var linkRegex =
+      /<a[^>]+href=["']([^"']*\/details\?p=[^"']+)["'][^>]*title=["']([^"']+)["']/g;
 
-      if (index === -1) {
-        break;
+    while ((match = linkRegex.exec(html)) !== null) {
+      var href = match[1];
+      var title = match[2]
+        .replace(/&amp;/g, '&')
+        .trim();
+
+      var absoluteUrl = href.startsWith('http')
+        ? href
+        : 'https://www.uqn.gov.sa' + href;
+
+      if (!results.some(function(item) {
+        return item.url === absoluteUrl;
+      })) {
+        results.push({
+          title: title,
+          url: absoluteUrl
+        });
       }
 
-      positions.push({
-        position: index,
-        context: html.substring(
-          Math.max(0, index - 500),
-          Math.min(html.length, index + 1000)
-        )
-      });
-
-      start = index + word.length;
-
-      if (positions.length >= 10) {
-        break;
-      }
+      if (results.length >= 15) break;
     }
 
     return {
@@ -47,14 +56,14 @@ exports.handler = async function(event) {
       headers: h,
       body: JSON.stringify({
         success: true,
+        query: query,
         status: response.status,
         page_length: html.length,
-        occurrences: positions
+        results: results
       })
     };
 
   } catch (e) {
-
     return {
       statusCode: 500,
       headers: h,
@@ -63,6 +72,5 @@ exports.handler = async function(event) {
         error: e.message
       })
     };
-
   }
 };
