@@ -1,52 +1,48 @@
 
 exports.handler = async function () {
-  var base = "https://www.uqn.gov.sa/api/widget/52/json";
-  var query = "نظام العمل";
+  try {
+    var response = await fetch(
+      "https://www.uqn.gov.sa/search?query=" +
+      encodeURIComponent("نظام العمل")
+    );
 
-  var tests = [
-    { name: "query", params: { query: query } },
-    { name: "searchQuery", params: { searchQuery: query } },
-    { name: "keyword", params: { keyword: query } },
-    { name: "q", params: { q: query } }
-  ];
+    var html = await response.text();
 
-  var results = [];
+    var patterns = [
+      "widget_url",
+      "searchQuery",
+      "each_widget_search",
+      "api/widget/52/json",
+      "axios",
+      "fetch("
+    ];
 
-  for (var test of tests) {
-    try {
-      var url = new URL(base);
+    var results = patterns.map(function (pattern) {
+      var index = html.indexOf(pattern);
 
-      Object.keys(test.params).forEach(function (key) {
-        url.searchParams.set(key, test.params[key]);
-      });
+      return {
+        pattern: pattern,
+        found: index !== -1,
+        snippet: index !== -1
+          ? html.substring(
+              Math.max(0, index - 250),
+              Math.min(html.length, index + 700)
+            )
+          : ""
+      };
+    });
 
-      var response = await fetch(url.toString());
-      var data = await response.json();
-
-      var articles =
-        data?.widget_data?.articles || [];
-
-      results.push({
-        method: test.name,
-        status: response.status,
-        count: articles.length,
-        titles: articles.slice(0, 8).map(function (item) {
-          return item.article_title;
-        })
-      });
-    } catch (error) {
-      results.push({
-        method: test.name,
-        error: error.message
-      });
-    }
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      body: JSON.stringify(results)
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
   }
-
-  return {
-    statusCode: 200,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8"
-    },
-    body: JSON.stringify(results)
-  };
 };
