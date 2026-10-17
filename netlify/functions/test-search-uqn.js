@@ -1,48 +1,38 @@
 
 exports.handler = async function () {
-  var headers = {
-    "Content-Type": "application/json; charset=utf-8"
-  };
-
   try {
-    var url =
-      "https://www.uqn.gov.sa/search?query=" +
-      encodeURIComponent("نظام العمل");
+    var url = "https://www.uqn.gov.sa/api/widget/52/json";
 
     var response = await fetch(url);
-    var html = await response.text();
+    var contentType = response.headers.get("content-type") || "";
+    var body = await response.text();
 
-    // نعرض مقتطفات من الصفحة حول كلمة "العمل"
-    var positions = [];
-    var start = 0;
+    var preview = body.substring(0, 12000);
+    var parsed = null;
 
-    while (positions.length < 5) {
-      var index = html.indexOf("العمل", start);
-      if (index === -1) break;
-
-      positions.push(
-        html.substring(
-          Math.max(0, index - 250),
-          Math.min(html.length, index + 500)
-        )
-      );
-
-      start = index + 5;
-    }
+    try {
+      parsed = JSON.parse(body);
+    } catch (_) {}
 
     return {
       statusCode: 200,
-      headers: headers,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8"
+      },
       body: JSON.stringify({
         status: response.status,
-        page_length: html.length,
-        snippets: positions
+        content_type: contentType,
+        response_length: body.length,
+        is_json: parsed !== null,
+        response_preview: preview
       })
     };
   } catch (error) {
     return {
       statusCode: 500,
-      headers: headers,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8"
+      },
       body: JSON.stringify({
         error: error.message
       })
