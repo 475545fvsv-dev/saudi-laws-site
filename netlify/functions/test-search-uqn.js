@@ -8,25 +8,40 @@ exports.handler = async function () {
 
     var html = await response.text();
 
+    var start = html.indexOf(
+      "window.each_widget_search = Vue.createApp"
+    );
+
+    if (start === -1) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          error: "لم أجد كود أداة البحث في الصفحة"
+        })
+      };
+    }
+
+    var script = html.substring(start, start + 50000);
+
     var patterns = [
-      "widget_url",
+      "axios.get(this.widget_url",
       "searchQuery",
-      "each_widget_search",
-      "api/widget/52/json",
-      "axios",
-      "fetch("
+      "this.query",
+      "methods:",
+      "async created()",
+      "params:"
     ];
 
     var results = patterns.map(function (pattern) {
-      var index = html.indexOf(pattern);
+      var index = script.indexOf(pattern);
 
       return {
         pattern: pattern,
         found: index !== -1,
         snippet: index !== -1
-          ? html.substring(
-              Math.max(0, index - 250),
-              Math.min(html.length, index + 700)
+          ? script.substring(
+              Math.max(0, index - 500),
+              Math.min(script.length, index + 1800)
             )
           : ""
       };
@@ -42,7 +57,9 @@ exports.handler = async function () {
   } catch (error) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({
+        error: error.message
+      })
     };
   }
 };
