@@ -1,53 +1,75 @@
 
 exports.handler = async function () {
-  try {
-    var response = await fetch("https://www.uqn.gov.sa/search?query=" + encodeURIComponent("نظام العمل"));
-    var html = await response.text();
+  var base = "https://www.uqn.gov.sa/api/widget/52/json";
+  var query = "نظام العمل";
 
-    var terms = [
-      "fetchArticles()",
-      "fetchArticles:",
-      "fetchArticles =",
-      "const widget_mixin",
-      "widget_mixin =",
-      "function widget_mixin",
-      "setQueryParam("
-    ];
-
-    var results = [];
-
-    for (var term of terms) {
-      var positions = [];
-      var from = 0;
-
-      while (positions.length < 5) {
-        var index = html.indexOf(term, from);
-        if (index === -1) break;
-        positions.push(index);
-        from = index + term.length;
+  var variants = [
+    { name: "query", params: { query: query } },
+    { name: "query_title", params: { query_title: query } },
+    { name: "query_body", params: { query_body: query } },
+    {
+      name: "query_title_and_body",
+      params: { query_title: query, query_body: query }
+    },
+    {
+      name: "full_widget_request",
+      params: {
+        query: query,
+        query_title: "",
+        query_body: "",
+        image_thumbs: "400,600",
+        ts: Date.now(),
+        pgno: 1,
+        type: "",
+        sections: "",
+        user: ""
       }
+    }
+  ];
+
+  var results = [];
+
+  for (var variant of variants) {
+    try {
+      var url = new URL(base);
+
+      Object.keys(variant.params).forEach(function (key) {
+        url.searchParams.set(key, variant.params[key]);
+      });
+
+      var response = await fetch(url.toString());
+      var data = await response.json();
+
+      var widget = data?.widget_data || {};
+      var info = widget.widget_data_info || {};
+
+      var articles =
+        info.articles ||
+        info.view_data?.articles ||
+        widget.articles ||
+        [];
 
       results.push({
-        term: term,
-        found: positions.length > 0,
-        snippets: positions.map(function (index) {
-          return html.substring(
-            Math.max(0, index - 500),
-            Math.min(html.length, index + 1800)
-          );
+        test: variant.name,
+        status: response.status,
+        count: articles.length,
+        titles: articles.slice(0, 8).map(function (article) {
+          return article.article_title;
         })
       });
+    } catch (error) {
+      results.push({
+        test: variant.name,
+        error: error.message
+      });
     }
-
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-      body: JSON.stringify(results)
-    };
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message })
-    };
   }
+
+  return {
+    statusCode: 200,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8"
+    },
+    body: JSON.stringify(results)
+  };
 };
