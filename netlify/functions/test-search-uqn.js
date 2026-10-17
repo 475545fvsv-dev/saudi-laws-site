@@ -1,75 +1,69 @@
 
 exports.handler = async function () {
-  var base = "https://www.uqn.gov.sa/api/widget/52/json";
-  var query = "نظام العمل";
+  try {
+    var query = "نظام العمل";
+    var url =
+      "https://www.uqn.gov.sa/search?query=" +
+      encodeURIComponent(query);
 
-  var variants = [
-    { name: "query", params: { query: query } },
-    { name: "query_title", params: { query_title: query } },
-    { name: "query_body", params: { query_body: query } },
-    {
-      name: "query_title_and_body",
-      params: { query_title: query, query_body: query }
-    },
-    {
-      name: "full_widget_request",
-      params: {
-        query: query,
-        query_title: "",
-        query_body: "",
-        image_thumbs: "400,600",
-        ts: Date.now(),
-        pgno: 1,
-        type: "",
-        sections: "",
-        user: ""
+    var response = await fetch(url);
+    var html = await response.text();
+
+    // استخراج روابط النتائج وعناوينها من صفحة أم القرى
+    var results = [];
+    var regex =
+      /<a\b[^>]*href=["']([^"']*details\?p=\d+[^"']*)["'][^>]*>/gi;
+
+    var match;
+
+    while ((match = regex.exec(html)) !== null) {
+      var tag = match[0];
+      var href = match[1];
+
+      var titleMatch = tag.match(/\btitle=["']([^"']+)["']/i);
+
+      var title = titleMatch
+        ? titleMatch[1]
+        : "";
+
+      var link = href.startsWith("http")
+        ? href
+        : "https://www.uqn.gov.sa" + href;
+
+      if (
+        title &&
+        !results.some(function (item) {
+          return item.url === link;
+        })
+      ) {
+        results.push({
+          title: title,
+          url: link
+        });
       }
     }
-  ];
 
-  var results = [];
-
-  for (var variant of variants) {
-    try {
-      var url = new URL(base);
-
-      Object.keys(variant.params).forEach(function (key) {
-        url.searchParams.set(key, variant.params[key]);
-      });
-
-      var response = await fetch(url.toString());
-      var data = await response.json();
-
-      var widget = data?.widget_data || {};
-      var info = widget.widget_data_info || {};
-
-      var articles =
-        info.articles ||
-        info.view_data?.articles ||
-        widget.articles ||
-        [];
-
-      results.push({
-        test: variant.name,
+    return {
+      statusCode: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      body: JSON.stringify({
         status: response.status,
-        count: articles.length,
-        titles: articles.slice(0, 8).map(function (article) {
-          return article.article_title;
-        })
-      });
-    } catch (error) {
-      results.push({
-        test: variant.name,
+        query: query,
+        results_count: results.length,
+        results: results.slice(0, 15)
+      })
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8"
+      },
+      body: JSON.stringify({
         error: error.message
-      });
-    }
+      })
+    };
   }
-
-  return {
-    statusCode: 200,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8"
-    },
-    body: JSON.stringify(results)
-  };
 };
